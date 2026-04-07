@@ -27,6 +27,9 @@
 - 支持轻量同义词归并
 - 支持 raw fallback，从原始口碑里直接抽词
 - 导出 Excel 追溯词项来源
+- 默认优先使用微软雅黑字体
+- 正向词云使用蓝绿渐变，负向词云使用橙红渐变
+- 同一张词云里，词频越高颜色越实、透明度越高；词频越低颜色越淡、透明度越低
 
 ## 目录结构
 
@@ -59,7 +62,7 @@ skills/koubei-wordcloud/
 pip install pandas openpyxl pyyaml wordcloud pillow
 ```
 
-如果本机没有中文字体，需要准备一个 `.ttf` / `.ttc`，运行时通过 `--font-path` 指定。
+如果本机没有微软雅黑字体，需要准备一个 `.ttf` / `.ttc`，运行时通过 `--font-path` 指定。
 
 ## 快速验收
 
@@ -143,7 +146,7 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 - `--min-weight`：最低词权重，默认 `1.0`
 - `--stopwords`：停用词文件路径
 - `--synonym-map`：同义词映射文件路径
-- `--font-path`：中文字体路径
+- `--font-path`：中文字体路径，默认优先微软雅黑
 - `--json`：输出 JSON 结果
 
 ## 输出说明

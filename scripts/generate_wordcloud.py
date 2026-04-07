@@ -94,7 +94,7 @@ def main() -> int:
     image_paths = []
     for group in groups:
         image_path = output_dir / group["filename"]
-        render_wordcloud(image_path, group["title"], group["frequencies"], font_path, group["color"])
+        render_wordcloud(image_path, group["title"], group["frequencies"], font_path, group["direction"])
         image_paths.append(str(image_path))
 
     excel_path = output_dir / f"{args.model_name}_词云词项清单.xlsx"

@@ -449,19 +449,78 @@ def build_expanded_groups(rows: list[dict[str, Any]], top_n: int, min_weight: fl
     return result
 
 
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    value = hex_color.strip().lstrip("#")
+    if len(value) != 6:
+        raise ValueError(f"无效颜色值: {hex_color}")
+    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _mix_rgb(start_rgb: tuple[int, int, int], end_rgb: tuple[int, int, int], ratio: float) -> tuple[int, int, int]:
+    ratio = max(0.0, min(1.0, ratio))
+    return tuple(round(start_rgb[i] + (end_rgb[i] - start_rgb[i]) * ratio) for i in range(3))
+
+
+def _build_frequency_color_func(frequencies: dict[str, float], direction: str):
+    if not frequencies:
+        return lambda *args, **kwargs: (0, 0, 0, 255)
+
+    values = list(frequencies.values())
+    min_weight = min(values)
+    max_weight = max(values)
+    if direction == "positive":
+        start_rgb = _hex_to_rgb("#7FDBFF")
+        end_rgb = _hex_to_rgb("#0B8F5A")
+    elif direction == "negative":
+        start_rgb = _hex_to_rgb("#FFD27D")
+        end_rgb = _hex_to_rgb("#D62828")
+    else:
+        start_rgb = _hex_to_rgb("#D0D8E8")
+        end_rgb = _hex_to_rgb("#2F4F6F")
+
+    def color_func(word, *args, **kwargs):
+        weight = frequencies.get(word, min_weight)
+        if max_weight == min_weight:
+            ratio = 1.0
+        else:
+            ratio = (weight - min_weight) / (max_weight - min_weight)
+        rgb = _mix_rgb(start_rgb, end_rgb, ratio)
+        alpha = round(255 * (0.42 + 0.5 * ratio))
+        return rgb + (alpha,)
+
+    return color_func
+
+
 def detect_font(font_path: str | Path | None = None) -> str:
-    candidates = []
     if font_path:
         p = Path(font_path)
         if p.exists():
             return str(p)
         raise FileNotFoundError(f"字体文件不存在: {font_path}")
 
-    search_dirs = [Path("/System/Library/Fonts"), Path("/Library/Fonts"), Path.home() / "Library/Fonts"]
-    preferred = [
-        "PingFang.ttc", "PingFang SC.ttc", "STHeiti Light.ttc", "STHeiti Medium.ttc",
-        "Songti.ttc", "Hiragino Sans GB.ttc", "Arial Unicode.ttf",
+    search_dirs = [
+        Path("/System/Library/Fonts"),
+        Path("/Library/Fonts"),
+        Path.home() / "Library/Fonts",
+        Path("/Windows/Fonts"),
+        Path("/mnt/c/Windows/Fonts"),
     ]
+    preferred = [
+        "Microsoft YaHei UI.ttf",
+        "Microsoft YaHei.ttf",
+        "msyh.ttc",
+        "msyh.ttf",
+        "msyhbd.ttf",
+        "微软雅黑.ttf",
+        "PingFang.ttc",
+        "PingFang SC.ttc",
+        "STHeiti Light.ttc",
+        "STHeiti Medium.ttc",
+        "Songti.ttc",
+        "Hiragino Sans GB.ttc",
+        "Arial Unicode.ttf",
+    ]
+    candidates = []
     for directory in search_dirs:
         if not directory.exists():
             continue
@@ -470,13 +529,18 @@ def detect_font(font_path: str | Path | None = None) -> str:
                 if path.exists():
                     candidates.append(path)
     if candidates:
+        # 优先命中微软雅黑；如果本机没有，再退回到其他可用中文字体。
+        for path in candidates:
+            if re.search(r"microsoft yahei|msyh|微软雅黑", path.name, re.IGNORECASE):
+                return str(path)
         return str(candidates[0])
-    raise FileNotFoundError("未找到可用中文字体，请通过 --font-path 指定")
+    raise FileNotFoundError("未找到可用中文字体，优先需要微软雅黑；请通过 --font-path 显式指定字体文件")
 
 
-def render_wordcloud(output_path: str | Path, title: str, frequencies: dict[str, float], font_path: str, color: str) -> None:
+def render_wordcloud(output_path: str | Path, title: str, frequencies: dict[str, float], font_path: str, direction: str) -> None:
     if not frequencies:
         raise ValueError(f"词云无可用词项: {title}")
+    color_func = _build_frequency_color_func(frequencies, direction)
     wc = WordCloud(
         width=1400,
         height=900,
@@ -486,7 +550,7 @@ def render_wordcloud(output_path: str | Path, title: str, frequencies: dict[str,
         collocations=False,
         max_words=max(len(frequencies), 20),
         margin=8,
-        color_func=lambda *args, **kwargs: color,
+        color_func=color_func,
     )
     image = wc.generate_from_frequencies(frequencies).to_image()
 

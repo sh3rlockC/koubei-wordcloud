@@ -1,6 +1,6 @@
 ---
 name: koubei-wordcloud
-description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 生成口碑词云图片，并导出词项清单 Excel。适用于用户希望把口碑关键词结果继续可视化、输出优点/槽点词云、做汇报素材时使用。默认输出 2 张总图（优点词云 / 槽点词云），也支持 expanded 分平台模式与 raw fallback。
+description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 生成口碑词云图片，并导出词项清单 Excel。适用于用户希望把口碑关键词结果继续可视化、输出优点/槽点词云、做汇报素材时使用。默认输出 2 张总图（优点词云 / 槽点词云），也支持 expanded 分平台模式与 raw fallback；默认优先使用微软雅黑字体，词云颜色按词频做深浅渐变。
 ---
 
 # 口碑词云生成
@@ -19,6 +19,11 @@ description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 
 - 输出：
   - 词云 PNG
   - 词项清单 Excel
+
+视觉规则：
+- 默认优先使用微软雅黑字体；如果本机未安装，可用 `--font-path` 显式指定字体文件
+- 正向词云使用蓝绿渐变，负向词云使用橙红渐变
+- 同一张词云里，词频越高颜色越实、透明度越高；词频越低颜色越淡、透明度越低
 
 当前仍未覆盖：
 - 复杂主题皮肤
@@ -90,7 +95,7 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 - `--min-weight` 最低词权重
 - `--stopwords` 自定义停用词文件
 - `--synonym-map` 自定义同义词映射
-- `--font-path` 指定中文字体
+- `--font-path` 指定中文字体；默认优先微软雅黑
 - `--json` 输出结构化结果
 
 ## 5. 输出原则
