@@ -223,3 +223,10 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 - 更稳的 raw 情感判定
 - 更适合汇报的主题皮肤
 - 批量车型处理
+
+## Changelog & Releases
+
+- User-visible changes are tracked in [`CHANGELOG.md`](./CHANGELOG.md).
+- For a new release, update the `Unreleased` section first, then cut the versioned release.
+- GitHub Release notes should match the same user-visible changes, not just raw commit history.
+
