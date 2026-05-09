@@ -5,7 +5,7 @@ import math
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, TypedDict
 
 import pandas as pd
 import yaml
@@ -36,6 +36,19 @@ DCD_DIRECTION_CANDIDATE_COLUMNS = [
 ]
 DCD_POSITIVE_COLUMNS = ["最满意", "优点", "正向", "正向标签"]
 DCD_NEGATIVE_COLUMNS = ["最不满意", "缺点", "负向", "负向标签"]
+
+
+class CompactGroupMeta(TypedDict):
+    label: str
+    color: str
+    directions: set[str]
+
+
+COMPACT_GROUP_META: dict[str, CompactGroupMeta] = {
+    "positive": {"label": "优点", "color": "#2E8B57", "directions": {"positive"}},
+    "negative": {"label": "槽点", "color": "#C0392B", "directions": {"negative"}},
+    "overall": {"label": "总体", "color": "#2563EB", "directions": {"positive", "negative"}},
+}
 
 
 def clean_text(value: Any) -> str:
@@ -397,28 +410,34 @@ def aggregate_terms(terms: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def build_compact_groups(rows: list[dict[str, Any]], top_n: int, min_weight: float, model_name: str) -> list[dict[str, Any]]:
-    grouped: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+def build_frequency_map(
+    rows: list[dict[str, Any]],
+    directions: set[str],
+    top_n: int,
+    min_weight: float,
+) -> dict[str, float]:
+    grouped: dict[str, float] = defaultdict(float)
     for row in rows:
-        grouped[row["direction"]][row["term"]] += float(row["weight"])
+        if row["direction"] in directions:
+            grouped[row["term"]] += float(row["weight"])
+    freq = {term: weight for term, weight in grouped.items() if weight >= min_weight}
+    return dict(sorted(freq.items(), key=lambda x: (-x[1], x[0]))[:top_n])
+
+
+def build_compact_groups(rows: list[dict[str, Any]], top_n: int, min_weight: float, model_name: str) -> list[dict[str, Any]]:
     result = []
-    meta = {
-        "positive": (f"{model_name}_优点词云.png", f"{model_name} 优点词云", "#2E8B57"),
-        "negative": (f"{model_name}_槽点词云.png", f"{model_name} 槽点词云", "#C0392B"),
-    }
-    for direction in ["positive", "negative"]:
-        freq = {term: weight for term, weight in grouped.get(direction, {}).items() if weight >= min_weight}
-        freq = dict(sorted(freq.items(), key=lambda x: (-x[1], x[0]))[:top_n])
+    for group_key, meta in COMPACT_GROUP_META.items():
+        freq = build_frequency_map(rows, meta["directions"], top_n, min_weight)
         if not freq:
             continue
-        filename, title, color = meta[direction]
+        label = meta["label"]
         result.append({
-            "group_key": direction,
-            "direction": direction,
+            "group_key": group_key,
+            "direction": group_key,
             "platform": "combined",
-            "title": title,
-            "filename": filename,
-            "color": color,
+            "title": f"{model_name} {label}词云",
+            "filename": f"{model_name}_{label}词云.png",
+            "color": meta["color"],
             "frequencies": freq,
         })
     return result
@@ -501,6 +520,33 @@ def render_wordcloud(output_path: str | Path, title: str, frequencies: dict[str,
     canvas.save(output_path)
 
 
+def join_unique(values: Iterable[Any]) -> str:
+    items = []
+    for value in values:
+        text = clean_text(value)
+        if text and text not in items:
+            items.append(text)
+    return ", ".join(items)
+
+
+def build_overall_terms_df(terms_df: pd.DataFrame) -> pd.DataFrame:
+    if terms_df.empty:
+        return pd.DataFrame()
+    aggregations: dict[str, Any] = {}
+    for column in terms_df.columns:
+        if column == "term":
+            continue
+        if column == "weight":
+            aggregations[column] = "sum"
+        else:
+            aggregations[column] = join_unique
+    overall_df = terms_df.groupby("term", as_index=False).agg(aggregations)
+    if "weight" in overall_df.columns:
+        overall_df["weight"] = overall_df["weight"].round(2)
+        overall_df = overall_df.sort_values(["weight", "term"], ascending=[False, True])
+    return overall_df
+
+
 def export_term_excel(path: str | Path, all_terms: list[dict[str, Any]], groups: list[dict[str, Any]], meta: dict[str, Any]) -> None:
     summary_df = pd.DataFrame([
         {"字段": "model_name", "值": meta.get("model_name", "")},
@@ -516,6 +562,7 @@ def export_term_excel(path: str | Path, all_terms: list[dict[str, Any]], groups:
     terms_df = pd.DataFrame(all_terms)
     positive_df = terms_df[terms_df["direction"] == "positive"].sort_values(["weight", "platform"], ascending=[False, True]) if not terms_df.empty else pd.DataFrame()
     negative_df = terms_df[terms_df["direction"] == "negative"].sort_values(["weight", "platform"], ascending=[False, True]) if not terms_df.empty else pd.DataFrame()
+    overall_df = build_overall_terms_df(terms_df)
     breakdown_rows = []
     for group in groups:
         for term, weight in group["frequencies"].items():
@@ -533,6 +580,7 @@ def export_term_excel(path: str | Path, all_terms: list[dict[str, Any]], groups:
         summary_df.to_excel(writer, index=False, sheet_name="summary")
         positive_df.to_excel(writer, index=False, sheet_name="positive_terms")
         negative_df.to_excel(writer, index=False, sheet_name="negative_terms")
+        overall_df.to_excel(writer, index=False, sheet_name="overall_terms")
         if not breakdown_df.empty:
             breakdown_df.to_excel(writer, index=False, sheet_name="platform_breakdown")
 
