@@ -15,18 +15,19 @@
 
 适合这些场景：
 - 把口碑摘要继续可视化
-- 快速做优点 / 槽点词云
+- 快速做优点 / 槽点 / 总体词云
 - 做周报、汇报、一页纸素材
 - 上游摘要还没产出时，直接从原始口碑走 fallback
 
 ## 功能
 
-- 默认 `compact` 模式，输出 2 张总图
+- 默认 `compact` 模式，输出 3 张总图
 - 支持 `expanded` 模式，输出最多 4 张分平台图
 - 支持基础停用词过滤
 - 支持轻量同义词归并
 - 支持 raw fallback，从原始口碑里直接抽词
 - 导出 Excel 追溯词项来源
+- compact 图色彩固定为：优点绿色、槽点红色、总体蓝色
 
 ## 目录结构
 
@@ -73,9 +74,7 @@ skills/koubei-wordcloud/scripts/smoke_test.sh
 - 摘要 Excel 输入
 - raw fallback 输入
 
-输出目录：
-- `data/output/koubei-wordcloud-smoke/summary/`
-- `data/output/koubei-wordcloud-smoke/raw/`
+脚本会临时生成最小 Excel fixture，输出到本机临时目录，结束后自动清理。
 
 ## 用法
 
@@ -150,9 +149,10 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 
 ### compact
 
-输出 2 张图：
+输出 3 张图：
 - `<车型名>_优点词云.png`
 - `<车型名>_槽点词云.png`
+- `<车型名>_总体词云.png`
 
 ### expanded
 
@@ -171,6 +171,7 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 - summary：本次生成元信息
 - positive_terms：正向词项
 - negative_terms：负向词项
+- overall_terms：正负向合并后的总体词项
 - platform_breakdown：每张图实际采用的词项清单
 
 ## raw fallback 规则
@@ -214,7 +215,7 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 ## 现状
 
 已验证：
-- `compact` 模式可成功生成 2 张图
+- `compact` 模式可成功生成 3 张图
 - `expanded` 模式可成功生成 4 张图
 - `smoke_test.sh` 可同时跑通 summary + raw fallback 两条链路
 
@@ -229,4 +230,3 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 - User-visible changes are tracked in [`CHANGELOG.md`](./CHANGELOG.md).
 - For a new release, update the `Unreleased` section first, then cut the versioned release.
 - GitHub Release notes should match the same user-visible changes, not just raw commit history.
-

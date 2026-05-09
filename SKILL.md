@@ -1,6 +1,6 @@
 ---
 name: koubei-wordcloud
-description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 生成口碑词云图片，并导出词项清单 Excel。适用于用户希望把口碑关键词结果继续可视化、输出优点/槽点词云、做汇报素材时使用。默认输出 2 张总图（优点词云 / 槽点词云），也支持 expanded 分平台模式与 raw fallback。
+description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 生成口碑词云图片，并导出词项清单 Excel。适用于用户希望把口碑关键词结果继续可视化、输出优点/槽点/总体词云、做汇报素材时使用。默认输出 3 张总图（优点词云 / 槽点词云 / 总体词云），也支持 expanded 分平台模式与 raw fallback。
 ---
 
 # 口碑词云生成
@@ -14,7 +14,7 @@ description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 
   - `koubei-keyword-summary` 输出的摘要 Excel
   - 或汽车之家 / 懂车帝原始口碑 Excel（raw fallback）
 - 模式：
-  - 默认 `compact`，输出 2 张总图
+  - 默认 `compact`，输出 3 张总图
   - `expanded`，输出最多 4 张分平台图
 - 输出：
   - 词云 PNG
@@ -52,6 +52,7 @@ description: 从 `koubei-keyword-summary` 的摘要 Excel 或原始口碑 Excel 
 默认输出到指定目录：
 - `<车型名>_优点词云.png`
 - `<车型名>_槽点词云.png`
+- `<车型名>_总体词云.png`
 - `<车型名>_词云词项清单.xlsx`
 
 ## 4. 推荐执行方式
@@ -99,6 +100,7 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 - 必要时从代表性原句中补词
 - 默认做基础清洗：停用词、纯数字、常见噪声词过滤
 - 默认做轻量同义归并
+- compact 总图固定使用优点绿色、槽点红色、总体蓝色
 - 不伪装成精确 NLP 模型结果，优先保证业务可读性
 
 ## 6. 校验要求
@@ -116,7 +118,7 @@ python3 skills/koubei-wordcloud/scripts/generate_wordcloud.py \
 ## 7. 交付物说明
 
 默认会产出：
-- compact：2 张图（优点 / 槽点）
+- compact：3 张图（优点 / 槽点 / 总体）
 - expanded：最多 4 张图（汽车之家优点/槽点、懂车帝优点/槽点）
 - 1 份 `词云词项清单.xlsx`
 
