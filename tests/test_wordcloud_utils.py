@@ -10,10 +10,14 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from wordcloud_utils import build_compact_groups, export_term_excel  # noqa: E402
+from wordcloud_utils import build_compact_groups, export_term_excel, normalize_term  # noqa: E402
 
 
 class CompactWordcloudGroupTests(unittest.TestCase):
+    def test_normalize_term_removes_outer_keyword_quotes(self) -> None:
+        self.assertEqual("空间宽敞", normalize_term("「空间宽敞」", set(), {}))
+        self.assertEqual("空间宽敞", normalize_term("“空间宽敞”", set(), {}))
+
     def test_compact_groups_include_positive_negative_and_overall_with_direction_colors(self) -> None:
         rows = [
             {"term": "空间宽敞", "weight": 4.0, "direction": "positive", "platform": "autohome"},
