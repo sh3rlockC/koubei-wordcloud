@@ -37,6 +37,21 @@ DCD_DIRECTION_CANDIDATE_COLUMNS = [
 DCD_POSITIVE_COLUMNS = ["最满意", "优点", "正向", "正向标签"]
 DCD_NEGATIVE_COLUMNS = ["最不满意", "缺点", "负向", "负向标签"]
 
+OUTER_KEYWORD_WRAPPERS = (
+    ("「", "」"),
+    ("『", "』"),
+    ("“", "”"),
+    ("‘", "’"),
+    ("《", "》"),
+    ("〈", "〉"),
+    ("【", "】"),
+    ("（", "）"),
+    ("(", ")"),
+    ("[", "]"),
+    ('"', '"'),
+    ("'", "'"),
+)
+
 
 class CompactGroupMeta(TypedDict):
     label: str
@@ -58,6 +73,20 @@ def clean_text(value: Any) -> str:
         return ""
     text = str(value).replace("\u3000", " ").strip()
     return re.sub(r"\s+", " ", text)
+
+
+def strip_outer_keyword_wrappers(text: str) -> str:
+    text = re.sub(r"[\u200b-\u200f\ufeff]", "", text).strip()
+    while len(text) >= 2:
+        for left, right in OUTER_KEYWORD_WRAPPERS:
+            if text.startswith(left) and text.endswith(right):
+                inner = text[len(left) : len(text) - len(right)].strip()
+                if inner:
+                    text = inner
+                    break
+        else:
+            break
+    return text
 
 
 def to_float(value: Any, default: float = 0.0) -> float:
@@ -110,7 +139,7 @@ def normalize_term(term: Any, stopwords: set[str], synonym_map: dict[str, str]) 
     text = re.sub(r"[，,。；;！!？?]+$", "", text)
     text = re.sub(r"^(用户对|主要是|主要在|主要短板集中在|核心卖点集中在|核心槽点集中在)", "", text)
     text = re.sub(r"(评价集中偏正面|评价集中偏负面|反馈偏正向|反馈偏负向|的负面反馈较集中|的正面反馈较集中)$", "", text)
-    text = clean_text(text)
+    text = strip_outer_keyword_wrappers(clean_text(text))
     if not text:
         return ""
     lower_map = {k.lower(): v for k, v in synonym_map.items()}
